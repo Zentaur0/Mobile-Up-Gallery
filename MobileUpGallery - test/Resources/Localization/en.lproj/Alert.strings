@@ -1,0 +1,18 @@
+/* 
+  Alert.strings
+  MobileUpGallery - test
+
+  Created by Антон Сивцов on 24.08.2021.
+  
+*/
+
+// MARK: - Alerts
+"wrong_data" = "Data have been read wrong";
+"successful_authorization" = "Authorized successfull";
+"image_saved" = "Image saved to camera roll";
+"image_wrong" = "image can't be loaded";
+"logout_text" = "Are you sure you want to log out?";
+"cancel_title" = "Cancel";
+"no_response" = "No response sent";
+"expired_token" = "Token has expired. Please log in again.";
+"unexpected_error" = "Some error occured. Please, write to the support.";

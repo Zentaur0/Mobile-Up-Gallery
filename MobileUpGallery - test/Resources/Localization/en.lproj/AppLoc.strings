@@ -1,0 +1,12 @@
+/* 
+  Localizable.strings
+  MobileUpGallery - test
+
+  Created by Антон Сивцов on 19.08.2021.
+  
+*/
+
+// MARK: - App
+"self_title" = "Mobile Up Gallery";
+"sign_in_button_title" = "Login with VK";
+"exit_button_title" = "Exit";
