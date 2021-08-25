@@ -73,8 +73,19 @@ extension PhotoOpenViewController {
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: leftBarButton)
         
         navigationController?.interactivePopGestureRecognizer?.delegate = nil
-        navigationController?.navigationBar.tintColor = .black
-        navigationController?.navigationBar.tintColor = UIColor(named: "background")
+        
+        createSeparator()
+    }
+    
+    private func createSeparator() {
+        let separator = UIView()
+        separator.backgroundColor = .lightGray.withAlphaComponent(0.3)
+        view.addSubview(separator)
+        
+        separator.snp.makeConstraints {
+            $0.leading.trailing.top.equalTo(view.safeAreaLayoutGuide)
+            $0.height.equalTo(0.5)
+        }
     }
 
 }

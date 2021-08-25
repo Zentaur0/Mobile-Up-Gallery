@@ -96,7 +96,10 @@ extension GalleryViewController {
         rightBarButtonItem.addTarget(self, action: #selector(exit), for: .touchUpInside)
         rightBarButtonItem.setTitleColor(UIColor(named: "text.color"), for: .normal)
         
-        navigationController?.modalTransitionStyle = .partialCurl
+        navigationController?.navigationBar.shadowImage = UIImage()
+        navigationController?.navigationBar.backgroundColor = UIColor(named: "background")
+        navigationController?.navigationBar.tintColor = UIColor(named: "background")
+        navigationController?.navigationBar.barTintColor = UIColor(named: "background")
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: rightBarButtonItem)
         title = R.string.appLoc.self_title()
     }
