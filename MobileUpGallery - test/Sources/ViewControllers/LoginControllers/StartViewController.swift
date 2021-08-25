@@ -40,7 +40,7 @@ extension StartViewController {
         view.addSubview(nameLabel)
         view.addSubview(vkLoginButton)
 
-        view.backgroundColor = .white
+        view.backgroundColor = UIColor(named: "background")
     }
 
     private func setupConstraints() {
@@ -65,8 +65,8 @@ extension StartViewController {
     }
 
     private func setupVKLoginButton() {
-        vkLoginButton.backgroundColor = .black
-        vkLoginButton.setTitleColor(.white, for: .normal)
+        vkLoginButton.backgroundColor = UIColor(named: "text.color")
+        vkLoginButton.setTitleColor(UIColor(named: "background"), for: .normal)
         vkLoginButton.setTitle(R.string.appLoc.sign_in_button_title(), for: .normal)
         vkLoginButton.layer.cornerRadius = 8
         vkLoginButton.titleLabel?.font = .systemFont(ofSize: 18, weight: .medium)
