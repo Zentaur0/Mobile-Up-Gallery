@@ -49,7 +49,7 @@ extension PhotoOpenViewController {
     
     private func setupViewController() {
         view.addSubview(imageScrollView)
-        view.backgroundColor = .white
+        view.backgroundColor = UIColor(named: "background")
     }
 
     private func setupConstraints() {
@@ -62,16 +62,19 @@ extension PhotoOpenViewController {
     private func setupNavigationBar() {
         let rightBarButton = UIButton(type: .system)
         rightBarButton.setImage(R.image.shareButton(), for: .normal)
+        rightBarButton.tintColor = UIColor(named: "text.color")
         rightBarButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: rightBarButton)
 
         let leftBarButton = UIButton(type: .system)
+        leftBarButton.tintColor = UIColor(named: "text.color")
         leftBarButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
         leftBarButton.addTarget(self, action: #selector(backToPreviousScreen), for: .touchUpInside)
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: leftBarButton)
         
         navigationController?.interactivePopGestureRecognizer?.delegate = nil
         navigationController?.navigationBar.tintColor = .black
+        navigationController?.navigationBar.tintColor = UIColor(named: "background")
     }
 
 }

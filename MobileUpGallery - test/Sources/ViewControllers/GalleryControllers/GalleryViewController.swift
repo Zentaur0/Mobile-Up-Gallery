@@ -69,15 +69,14 @@ extension GalleryViewController {
 
         collectionView.delegate = self
         collectionView.dataSource = self
-        collectionView.backgroundColor = .white
+        collectionView.backgroundColor = UIColor(named: "background")
         collectionView.showsVerticalScrollIndicator = false
         collectionView.register(GalleryCollectionViewCell.self,
                                 forCellWithReuseIdentifier: GalleryCollectionViewCell.reuseID)
 
         view.addSubview(collectionView)
         view.backgroundColor = .white
-        modalPresentationStyle = .fullScreen
-        modalTransitionStyle = .partialCurl
+        view.backgroundColor = UIColor(named: "background")
     }
 
     private func setupConstraints() {
@@ -95,6 +94,7 @@ extension GalleryViewController {
         rightBarButtonItem.setTitleColor(.black, for: .normal)
         rightBarButtonItem.titleLabel?.font = .systemFont(ofSize: 18, weight: .medium)
         rightBarButtonItem.addTarget(self, action: #selector(exit), for: .touchUpInside)
+        rightBarButtonItem.setTitleColor(UIColor(named: "text.color"), for: .normal)
         
         navigationController?.modalTransitionStyle = .partialCurl
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: rightBarButtonItem)

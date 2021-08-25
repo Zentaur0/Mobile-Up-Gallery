@@ -53,6 +53,7 @@ extension VKLoginWebViewController {
                                                             target: self,
                                                             action: #selector(closeLoginScreen))
 
+        view.backgroundColor = UIColor(named: "background")
         view.addSubview(webView)
     }
 
