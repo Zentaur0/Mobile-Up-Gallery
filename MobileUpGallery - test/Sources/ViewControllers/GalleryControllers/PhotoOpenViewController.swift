@@ -6,12 +6,21 @@
 //
 
 import UIKit
+import Photos
 
 // MARK: - PhotoOpenViewController
+
 final class PhotoOpenViewController: UIViewController {
 
     // MARK: - Properties
-    private let imageView = UIImageView()
+    
+    // MARK: Internal
+    
+    var onPhotoLoad: EmptyClosure?
+    
+    // MARK: Private
+    
+    private let imageScrollView: ImageScrollView = ImageScrollView()
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMMM YYYY"
@@ -19,38 +28,40 @@ final class PhotoOpenViewController: UIViewController {
     }()
 
     // MARK: - Life cycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         setupViewController()
         setupNavigationBar()
         setupConstraints()
     }
+    
 }
 
 // MARK: - Methods
+
 extension PhotoOpenViewController {
-    func build(_ photo: Photo) {
-        imageView.kf.setImage(with: URL(string: photo.pic))
+    
+    func build(_ photo: Photo, _ size: CGSize) {
+        imageScrollView.zoomImageView.kf.setImage(with: URL(string: photo.pic))
         title = dateFormatter.string(from: photo.date)
     }
     
     private func setupViewController() {
-        imageView.contentMode = .scaleAspectFit
-        
-        view.addSubview(imageView)
+        view.addSubview(imageScrollView)
         view.backgroundColor = .white
     }
 
     private func setupConstraints() {
-        imageView.snp.makeConstraints {
-            $0.edges.equalTo(view.safeAreaLayoutGuide.snp.edges)
+        imageScrollView.snp.makeConstraints {
+            $0.leading.bottom.trailing.equalToSuperview()
+            $0.top.equalTo(view.safeAreaLayoutGuide)
         }
-
     }
 
     private func setupNavigationBar() {
         let rightBarButton = UIButton(type: .system)
-        rightBarButton.setImage(UIImage(named: "share.button"), for: .normal)
+        rightBarButton.setImage(R.image.shareButton(), for: .normal)
         rightBarButton.addTarget(self, action: #selector(shareButtonTapped), for: .touchUpInside)
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: rightBarButton)
 
@@ -66,29 +77,47 @@ extension PhotoOpenViewController {
 }
 
 // MARK: - Actions
+
 extension PhotoOpenViewController {
+    
     @objc private func backToPreviousScreen() {
         navigationController?.popViewController(animated: true)
     }
 
     @objc private func shareButtonTapped() {
-        guard let image = imageView.image else {
-            AppContainer.showAlert(type: .failure, text: R.string.localizable.image_wrong())
+        guard let image = imageScrollView.zoomImageView.image else {
+            AppContainer.showAlert(type: .failure, text: R.string.alert.image_wrong())
             return
         }
         
         let shareController = UIActivityViewController(activityItems: [image],
                                                        applicationActivities: nil)
         
-        shareController.completionWithItemsHandler = .some({ activityType, _, _, _ in
+        shareController.completionWithItemsHandler = .some { [weak self] activityType, _, _, _ in
             guard let activityType = activityType else { return }
             switch activityType {
             case .saveToCameraRoll:
-                AppContainer.showAlert(type: .success, text: R.string.localizable.image_saved())
+                let authorizationStatus = PHPhotoLibrary.authorizationStatus()
+                switch authorizationStatus {
+                case .authorized:
+                    AppContainer.showAlert(type: .success, text: R.string.alert.image_saved())
+                    self?.onPhotoLoad?()
+                case .limited:
+                    AppContainer.showAlert(type: .success, text: R.string.alert.image_saved())
+                    self?.onPhotoLoad?()
+                case .notDetermined:
+                    break
+                case .restricted:
+                    AppContainer.showAlert(type: .failure, text: R.string.alert.image_wrong())
+                case .denied:
+                    AppContainer.showAlert(type: .failure, text: R.string.alert.image_wrong())
+                @unknown default:
+                    AppContainer.showAlert(type: .failure, text: R.string.alert.unexpected_error())
+                }
             default:
                 break
             }
-        })
+        }
         
         present(shareController, animated: true)
     }

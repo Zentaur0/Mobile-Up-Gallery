@@ -9,9 +9,11 @@ import UIKit
 import SwiftyJSON
 
 // MARK: - GalleryViewController
+
 final class GalleryViewController: UIViewController {
 
     // MARK: - Properties
+    
     private let layout: UICollectionViewFlowLayout = UICollectionViewFlowLayout()
     private var collectionView: UICollectionView?
     private var portraitSize: CGSize?
@@ -19,26 +21,29 @@ final class GalleryViewController: UIViewController {
     private var orientationChecked = false
     private var selectedCell: GalleryCollectionViewCell?
     private var photos: [Photo] = DataProvider.shared.photos
-
+    private var networkManager: NetworkManagerProtocol?
+    
+    // MARK: - Init
+    
+    init(networkManager: NetworkManagerProtocol) {
+        self.networkManager = networkManager
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    @available (*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     // MARK: - Life cycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         checkItemSize()
         setupViewController()
         setupConstraints()
         setupNavigationBar()
-        
-        NetworkManager.shared.loadPhotos { result in
-            switch result {
-            case .failure(let error):
-                AppContainer.showAlert(type: .failure, text: error.localizedDescription)
-            case .success(let photos):
-                self.photos = photos
-                DispatchQueue.main.async {
-                    self.collectionView?.reloadData()
-                }
-            }
-        }
+        loadPhotos()
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -50,35 +55,13 @@ final class GalleryViewController: UIViewController {
         super.viewWillTransition(to: size, with: coordinator)
         collectionView?.reloadData()
     }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        collectionView?.reloadData()
-        print(AppConfiguration.shared.vkToken)
-        let url = "https://api.vk.com/method/secure.checkToken?token=\(AppConfiguration.shared.vkToken)"
-//        https://api.vk.com/method/secure.checkToken?token=223c641e4e4be40b9131e1adb90bf81bc43b10f4b0761c2cc9ff5955f4c2f86aaa36042096081d441f066
-        
-//        JsxmH9UWm3VQo9oTjq2y
-//        53e34ce953e34ce953e34ce9a0539a4e7c553e353e34ce932fd1de89549517437d2da21
-//        guard let url = URL(string: url) else { return }
-//
-//        let session = URLSession.shared
-//        session.dataTask(with: url) { data, response, error in
-//            do {
-//                if let data = data {
-//                    let json = try JSON(data: data)
-//                    print(json)
-//                }
-//            } catch {
-//                print(error)
-//            }
-//        }.resume()
-    }
 
 }
 
 // MARK: - Methods
+
 extension GalleryViewController {
+    
     private func setupViewController() {
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
 
@@ -108,68 +91,119 @@ extension GalleryViewController {
     
     private func setupNavigationBar() {
         let rightBarButtonItem = UIButton(type: .system)
-        rightBarButtonItem.setTitle(R.string.localizable.exit_button_title(), for: .normal)
+        rightBarButtonItem.setTitle(R.string.appLoc.exit_button_title(), for: .normal)
         rightBarButtonItem.setTitleColor(.black, for: .normal)
         rightBarButtonItem.titleLabel?.font = .systemFont(ofSize: 18, weight: .medium)
         rightBarButtonItem.addTarget(self, action: #selector(exit), for: .touchUpInside)
         
         navigationController?.modalTransitionStyle = .partialCurl
         navigationItem.rightBarButtonItem = UIBarButtonItem(customView: rightBarButtonItem)
-        title = R.string.localizable.self_title()
+        title = R.string.appLoc.self_title()
+    }
+    
+    // MARK: - Load Photos
+    
+    private func loadPhotos() {
+        networkManager?.loadPhotos(sender: nil) { [weak self] result in
+            switch result {
+            case .failure(let error):
+                AppContainer.showAlert(type: .failure, text: error.localizedDescription)
+            case .success(let photos):
+                guard !photos.isEmpty else {
+                    DispatchQueue.main.async {
+                        AppConfiguration.removeData()
+                        AppContainer.showAlert(type: .failure, text: R.string.alert.expired_token())
+                    }
+                    return
+                }
+                
+                self?.chechPhotos(photos: photos)
+                self?.photos = DataProvider.shared.photos
+                
+                DispatchQueue.main.async {
+                    self?.collectionView?.reloadData()
+                }
+            }
+        }
+    }
+    
+    private func chechPhotos(photos: [Photo]) {
+        if DataProvider.shared.photos.count > photos.count {
+            for photo in photos {
+                if DataProvider.shared.photos.contains(photo) {
+                    guard let index = DataProvider.shared.photos.firstIndex(of: photo) else { return }
+                    DataProvider.shared.photos.remove(at: index)
+                } else {
+                    DataProvider.shared.photos.append(photo)
+                }
+            }
+        } else {
+            for photo in photos {
+                if !DataProvider.shared.photos.contains(photo) {
+                    DataProvider.shared.photos.append(photo)
+                }
+            }
+        }
     }
 
+    // MARK: - Item size check
+    
     private func checkItemSize() {
         let screen = UIScreen.main.bounds
         if !orientationChecked {
             if screen.width < screen.height {
                 portraitSize = CGSize(width: view.frame.width / 2 - 1, height: view.frame.width / 2 - 1)
-                checkLandscape(screen: screen, by: true)
+                checkLandscape(by: true)
             } else {
                 portraitSize = CGSize(width: view.frame.height / 2 - 1, height: view.frame.height / 2 - 1)
-                checkLandscape(screen: screen, by: false)
+                checkLandscape(by: false)
             }
             orientationChecked = true
         }
     }
 
-    private func checkLandscape(screen: CGRect, by width: Bool) {
+    private func checkLandscape(by width: Bool) {
+        let screen = UIScreen.main.bounds
+        let screenSize = screen.height > screen.width ? screen.height : screen.width
+        let viewSize = width ? view.frame.width : view.frame.height
+        
         switch true {
-        case screen.height > 750:
-            if width {
-                landscapeSize = CGSize(width: (view.frame.width / 2) - 8, height: (view.frame.width / 2) - 8)
-            } else {
-                landscapeSize = CGSize(width: (view.frame.height / 2) - 8, height: (view.frame.height / 2) - 8)
-            }
-        case screen.height < 750 && screen.height > 700:
-            if width {
-                landscapeSize = CGSize(width: (view.frame.width / 2) - 25, height: (view.frame.width / 2) - 25)
-            } else {
-                landscapeSize = CGSize(width: (view.frame.height / 2) - 25, height: (view.frame.height / 2) - 25)
-            }
-        case screen.height < 700:
-            if width {
-                landscapeSize = CGSize(width: (view.frame.width / 2) - 26, height: (view.frame.width / 2) - 26)
-            } else {
-                landscapeSize = CGSize(width: (view.frame.height / 2) - 26.5, height: (view.frame.height / 2) - 26.5)
-            }
+        // IPhone X, 11 Pro, 12 Mini, 12 Pro Max
+        case screenSize == 926, screenSize == 812:
+            landscapeSize = CGSize(width: (viewSize / 2) - 11, height: (viewSize / 2) - 11)
+        // IPhone 11, 11 Pro Max
+        case screenSize == 896:
+            landscapeSize = CGSize(width: (viewSize / 2) - 8.5, height: (viewSize / 2) - 8.5)
+        // IPhone 12, 12 Pro
+        case screenSize == 844:
+            landscapeSize = CGSize(width: (viewSize / 2) - 9.5, height: (viewSize / 2) - 9.5)
+        // IPhone 8 Plus
+        case screenSize == 736:
+            landscapeSize = CGSize(width: (viewSize / 2) - 25, height: (viewSize / 2) - 25)
+        // IPhone SE2, 8
+        case screenSize == 667:
+            landscapeSize = CGSize(width: (viewSize / 2) - 22.5, height: (viewSize / 2) - 22.5)
+        // IPhone SE1
+        case screenSize == 568:
+            landscapeSize = CGSize(width: (viewSize / 2) - 19.5, height: (viewSize / 2) - 19.5)
         default:
-            break
+            landscapeSize = CGSize(width: viewSize, height: viewSize)
         }
     }
 
 }
 
 // MARK: - Actions
+
 extension GalleryViewController {
+    
     @objc private func exit() {
-        let alert = UIAlertController(title: R.string.localizable.logout_text(), message: "", preferredStyle: .alert)
-        let cancelAction = UIAlertAction(title: R.string.localizable.exit_title(), style: .cancel, handler: nil)
-        let exitAction = UIAlertAction(title: R.string.localizable.exit_button_title(), style: .destructive) { _ in 
-            AppConfiguration.removeFromKeychain(key: .vkTokenKey)
-            UserDefaults.standard.setValue(false, forKey: "isAuthorized")
-            
-            AppContainer.createSpinnerView(self.navigationController ?? UINavigationController(), AppContainer.makeRootController())
+        let alert = UIAlertController(title: R.string.alert.logout_text(), message: "", preferredStyle: .alert)
+        let cancelAction = UIAlertAction(title: R.string.alert.cancel_title(), style: .cancel, handler: nil)
+        let exitAction = UIAlertAction(title: R.string.appLoc.exit_button_title(), style: .destructive) { _ in
+            AppConfiguration.removeData()
         }
+        
         alert.addAction(cancelAction)
         alert.addAction(exitAction)
         
@@ -179,7 +213,9 @@ extension GalleryViewController {
 }
 
 // MARK: - UICollectionViewDataSource
+
 extension GalleryViewController: UICollectionViewDataSource {
+    
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         photos.count
     }
@@ -199,18 +235,31 @@ extension GalleryViewController: UICollectionViewDataSource {
 }
 
 // MARK: - UICollectionViewDelegate
+
 extension GalleryViewController: UICollectionViewDelegate {
+    
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let photo = photos[indexPath.item]
+        var photo = photos[indexPath.item]
         let vc = PhotoOpenViewController()
-        vc.build(photo)
+        let size = UIScreen.main.bounds.size
+        
+        vc.build(photo, size)
+        vc.onPhotoLoad = { [weak self] in
+            self?.photos.remove(at: indexPath.item)
+            photo.makeLoaded()
+            self?.photos.insert(photo, at: indexPath.item)
+            DataProvider.shared.photos = self?.photos ?? []
+        }
+        
         navigationController?.pushViewController(vc, animated: true)
     }
 
 }
 
 // MARK: - UICollectionViewDelegateFlowLayout
+
 extension GalleryViewController: UICollectionViewDelegateFlowLayout {
+    
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
@@ -219,9 +268,9 @@ extension GalleryViewController: UICollectionViewDelegateFlowLayout {
               let landscapeSize = landscapeSize else { return CGSize() }
         
         switch UIDevice.current.orientation {
-        case .portrait: return portraitSize
+        case .portrait:                       return portraitSize
         case .landscapeLeft, .landscapeRight: return landscapeSize
-        default: return portraitSize.width > landscapeSize.width ? portraitSize : landscapeSize
+        default:                              return portraitSize.width > landscapeSize.width ? portraitSize : landscapeSize
         }
     }
 
