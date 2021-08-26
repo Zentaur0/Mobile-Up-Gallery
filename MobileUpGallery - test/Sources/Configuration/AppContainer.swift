@@ -35,7 +35,7 @@ final class AppContainer {
                 let expirationDate = Date(timeIntervalSince1970: TimeInterval(dateJson))
                 let distance = expirationDate.distance(to: currentDate)
                 
-                if distance >= 0 && !AppConfiguration.shared.vkToken.isEmpty {
+                if distance > 0 && !AppConfiguration.shared.vkToken.isEmpty {
                     DispatchQueue.main.async {
                         AppConfiguration.removeData()
                         AppContainer.createSpinnerView(UIApplication.topViewController()?.navigationController ?? UINavigationController(),
